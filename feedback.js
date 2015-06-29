@@ -67,73 +67,71 @@ $.when.apply(null, arrFun).then(function(){
     delete data.response;
   });
 
+  var tempIMG = document.createElement('canvas');
+
   html2canvas(document.body, {
     onrendered: function(canvas) {
 
-      var tempIMG = new Image();
-      tempIMG.src = canvas.toDataURL();
-
       imagesLoaded(arrImg, function(instance){
-        var height = canvas.height;
-
-        canvas.height = (TEXT_HEIGHT + IMG_HEIGHT + MARGIN_HEIGHT) * arrImg.length+canvas.height;
-        canvas.width = $(window).width();
-
-        var ctx = canvas.getContext("2d");
+        var height = 0;
+        var ctx = tempIMG.getContext("2d");
+        tempIMG.height = canvas.height + TEXT_HEIGHT*arrImg.length;
+        tempIMG.width = canvas.width;
 
         ctx.font = "40px Arial";
-        ctx.drawImage(tempIMG,0,0);
 
         instance.images.forEach(function(image, i){
           var typo = arrData[i].typo;
-
-          console.log(image.img.width + ", " + image.img.height);
 
           ctx.fillText(typo.oldText + " => "  + typo.newText, 0, height + (TEXT_HEIGHT - 20));
 
           height += TEXT_HEIGHT;
 
         });
-      });
 
-      $.ajax({
-        url: 'https://api.imgur.com/3/image',
-        headers: {
-          'Authorization': 'Client-ID 33f1b82cfcb816a'
-        },
-        type: 'POST',
-        data: {
-          'image': canvas.toDataURL("image/png").replace("data:image/png;base64,","")
-        },
-        datatype: 'JSON',
-        success: function(req)
-        {
-          window.open(req.data.link);
+        ctx.drawImage(canvas,0,height);
+        /*
+        var link = tempIMG.toDataURL("image/png");
+        window.open(link);*/
+        $.ajax({
+          url: 'https://api.imgur.com/3/image',
+          headers: {
+            'Authorization': 'Client-ID 33f1b82cfcb816a'
+          },
+          type: 'POST',
+          data: {
+            'image': tempIMG.toDataURL("image/png").replace("data:image/png;base64,","")
+          },
+          datatype: 'JSON',
+          success: function(req)
+          {
+            window.open(req.data.link);
 
-          var Feedback_report = Parse.Object.extend("Feedback_report");
-          var feedback_report = new Feedback_report();
-          feedback_report.set("owner_email",String(emails));
-          feedback_report.set("owner_url",String(window.location.href));
-          feedback_report.set("image_url",String(req.data.link));
+            var Feedback_report = Parse.Object.extend("Feedback_report");
+            var feedback_report = new Feedback_report();
+            feedback_report.set("owner_email",String(emails));
+            feedback_report.set("owner_url",String(window.location.href));
+            feedback_report.set("image_url",String(req.data.link));
 
-          feedback_report.save(null, {
-            success: function(feedback_report) {
-              // Execute any logic that should take place after the object is saved.
-              alert('we received your feedback, thank for your report!!');
-            },
-            error: function(feedback_report, error) {
-              // Execute any logic that should take place if the save fails.
-              // error is a Parse.Error with an error code and description.
-              alert('Failed to create new object, with error code: ' + error.description);
-            }
-          });
+            feedback_report.save(null, {
+              success: function(feedback_report) {
+                // Execute any logic that should take place after the object is saved.
+                alert('we received your feedback, thank for your report!!');
+              },
+              error: function(feedback_report, error) {
+                // Execute any logic that should take place if the save fails.
+                // error is a Parse.Error with an error code and description.
+                alert('Failed to create new object, with error code: ' + error.description);
+              }
+            });
 
 
-        },
-        error: function(xhr ,ajaxOption, thrownError)
-        {
-          alert('ERROR SECTION : Handle Comments');
-        }
+          },
+          error: function(xhr ,ajaxOption, thrownError)
+          {
+            alert('ERROR SECTION : Handle Comments');
+          }
+        });
       });
 
     }
